@@ -1,4 +1,4 @@
 node_modules
 npm-debug.log
-config.json
-private-key.pem
+config/config.json
+config/private-key.pem

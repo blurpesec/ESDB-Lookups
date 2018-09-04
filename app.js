@@ -1,61 +1,15 @@
-const http = require('http');
-const request = require('request');
-const config = require('./config');
 const debug = require('debug')('app');
-const fs = require('fs');
 const yaml = require('js-yaml');
-const createWebhook = require('github-webhook-handler');
-const createGitHubApp = require('github-app');
 
-const webhook = createWebhook({
-	path: '/',
-	secret: config.webhookSecret
-});
-
-const app = createGitHubApp({
-	id: config.githubAppID,
-	cert: fs.readFileSync('private-key.pem')
-});
-
-const server = http.createServer((req, res) => {
-	webhook(req, res, err => {
-		if (err) {
-			console.error(err);
-			res.statusCode = 500;
-			res.end('500');
-		} else {
-			res.statusCode = 404;
-			res.end('404');
-		}
-	});
-});
-
-const urlScanReport = (url) => {
-	return new Promise((resolve,reject) => {
-		request.post({
-			url: 'https://urlscan.io/api/v1/scan/',
-			json: true,
-			headers: {
-				'API-Key': config.urlScanAPIKey
-			},
-			body: {
-				'url': url,
-				'public': 'on'
-			}
-		}, (err, response, body) => {
-			if(err) {
-				reject(err);
-			} else if(response.statusCode != 200) {
-				reject("URLScan returned a " + response.statusCode + " status");
-			} else {
-				resolve(body.result);
-			}
-		});
-	});
-}
+const config = require('./utils/config');
+const urlScanReport = require('./utils/urlscan');
+const app = require('./utils/github');
+const server = require('./utils/server');
+const webhook = require('./utils/webhook');
 
 webhook.on('pull_request', async event => {
 	if (event.payload.action === 'opened') {
+		debug("New PR opened! (" + event.payload.repository.owner.login + "/" + event.payload.repository.name + "; #" + event.payload.pull_request.number ")");
 		const github = await app.asInstallation(event.payload.installation.id);
 		debug("Getting original branch...");
 		const originalBranch = await github.repos.getContent({
@@ -79,8 +33,8 @@ webhook.on('pull_request', async event => {
 			return entry;
 		}));
 		debug("Found " + newEntries.length + " new entries");
+		debug("Creating comment...");
 		if(newEntries.length > 0) {
-			debug("Creating comment...");
 			await github.issues.createComment({
 				owner: event.payload.repository.owner.login,
 				repo: event.payload.repository.name,
@@ -88,7 +42,6 @@ webhook.on('pull_request', async event => {
 				body: '**New entries added**: \n\n' + newEntries.map(entry => Object.keys(entry).map(key => '**' + key + '**: ' + entry[key]).join('\n')).join("\n<hr>\n")
 			});
 		} else {
-			debug("Creating comment...");
 			await github.issues.createComment({
 				owner: event.payload.repository.owner.login,
 				repo: event.payload.repository.name,
@@ -96,7 +49,6 @@ webhook.on('pull_request', async event => {
 				body: '**No new entries added**'
 			});
 		}
+		debug("Done!");
 	}
 });
-
-server.listen(config.port);
