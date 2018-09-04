@@ -53,4 +53,8 @@ webhook.on('pull_request', async event => {
 	}
 });
 
+process.on('unhandledRejection', reason => {
+	debug(reason);
+});
+
 debug("Started!");
