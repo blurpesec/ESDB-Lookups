@@ -1,8 +1,14 @@
 const debug = require('debug')('urlscan');
+const Bottleneck = require('bottleneck');
 const request = require('request');
 const config = require('./config');
 
-module.exports = (url) => {
+const limiter = new Bottleneck({
+	minTime: 2000,
+	maxConcurrent: 1
+});
+
+const reportURL = (url) => {
 	return new Promise((resolve,reject) => {
 		debug("Reporting " + url + "...");
 		request.post({
@@ -35,3 +41,5 @@ module.exports = (url) => {
 		});
 	});
 }
+
+module.exports = limiter.wrap(reportURL);

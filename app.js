@@ -9,7 +9,7 @@ const webhook = require('./utils/webhook');
 
 webhook.on('pull_request', async event => {
 	if (event.payload.action === 'opened') {
-		debug("New PR opened! (" + event.payload.repository.owner.login + "/" + event.payload.repository.name + "; #" + event.payload.pull_request.number ")");
+		debug("New PR opened! (" + event.payload.repository.owner.login + "/" + event.payload.repository.name + "; #" + event.payload.pull_request.number + ")");
 		const github = await app.asInstallation(event.payload.installation.id);
 		debug("Getting original branch...");
 		const originalBranch = await github.repos.getContent({
@@ -52,3 +52,5 @@ webhook.on('pull_request', async event => {
 		debug("Done!");
 	}
 });
+
+debug("Started!");

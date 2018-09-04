@@ -1,7 +1,7 @@
 const debug = require('debug')('http');
 const http = require('http');
 const config = require('./config');
-const webhook = require('./utils/webhook');
+const webhook = require('./webhook');
 
 debug("Registering http server...");
 module.exports = http.createServer((req, res) => {
